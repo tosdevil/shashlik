@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>жарка шашлыка</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body { margin: 0; padding: 18px; background: #111; color: #eee; }
+    .card { max-width: 720px; margin: 0 auto; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 14px; padding: 16px; }
+    h1 { margin: 0 0 12px; font-size: 22px; font-weight: 700; text-transform: lowercase; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    label { display: block; font-size: 13px; opacity: .9; margin-bottom: 6px; text-transform: lowercase; }
+    input[type="number"], input[type="text"] {
+      width: 100%; box-sizing: border-box; padding: 10px 12px;
+      border-radius: 10px; border: 1px solid #333; background: #0f0f0f; color: #eee;
+      outline: none;
+    }
+    input[type="file"]{ width:100%; }
+    .btns { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    button {
+      padding: 10px 14px; border-radius: 10px; border: 1px solid #333;
+      background: #0f0f0f; color: #eee; cursor: pointer; text-transform: lowercase;
+    }
+    button.primary { border-color: #555; background: #1f1f1f; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .stats {
+      margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+    }
+    .stat {
+      background: #0f0f0f; border: 1px solid #2a2a2a; border-radius: 12px; padding: 12px;
+    }
+    .stat .k { font-size: 12px; opacity: .8; text-transform: lowercase; }
+    .stat .v { font-size: 18px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+    .hint { margin-top: 10px; font-size: 12px; opacity: .75; line-height: 1.4; text-transform: lowercase; }
+    .log { margin-top: 12px; padding: 12px; background:#0f0f0f; border:1px solid #2a2a2a; border-radius: 12px; max-height: 180px; overflow:auto; font-size: 12px; }
+    .log div { margin-bottom: 6px; opacity: .9; }
+    .mono { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>жарка шашлыка</h1>
+
+    <div class="row">
+      <div>
+        <label>минимум (сек)</label>
+        <input id="minSec" type="number" min="1" value="15" />
+      </div>
+      <div>
+        <label>максимум (сек)</label>
+        <input id="maxSec" type="number" min="1" value="20" />
+      </div>
+    </div>
+
+    <div style="margin-top:10px">
+      <label>звук (выбери файл mp3/wav/ogg) — надёжнее чем ссылка из-за ограничений браузера</label>
+      <input id="soundFile" type="file" accept="audio/*" />
+    </div>
+
+    <div style="margin-top:10px">
+      <label>или url звука (может не работать из-за cors, лучше файл)</label>
+      <input id="soundUrl" type="text" placeholder="https://..." />
+    </div>
+
+    <div class="btns">
+      <button id="startBtn" class="primary">старт</button>
+      <button id="pauseBtn" disabled>пауза</button>
+      <button id="stopBtn" disabled>стоп</button>
+      <button id="testBtn">тест звука</button>
+      <button id="resetBtn">сброс счётчиков</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="k">статус</div>
+        <div class="v" id="status">остановлено</div>
+      </div>
+      <div class="stat">
+        <div class="k">время жарки</div>
+        <div class="v mono" id="elapsed">00:00:00</div>
+      </div>
+      <div class="stat">
+        <div class="k">воспроизведений</div>
+        <div class="v mono" id="count">0</div>
+      </div>
+    </div>
+
+    <div class="hint">
+      заметка: браузер разрешает звук только после действия пользователя (кнопка старт/тест). если вкладка уснёт — таймер может замедлиться, но всё равно продолжит.
+    </div>
+
+    <div class="log" id="log"></div>
+  </div>
+
+<script>
+(() => {
+  const el = (id) => document.getElementById(id);
+
+  const minSecEl = el("minSec");
+  const maxSecEl = el("maxSec");
+  const fileEl   = el("soundFile");
+  const urlEl    = el("soundUrl");
+
+  const startBtn = el("startBtn");
+  const pauseBtn = el("pauseBtn");
+  const stopBtn  = el("stopBtn");
+  const testBtn  = el("testBtn");
+  const resetBtn = el("resetBtn");
+
+  const statusEl = el("status");
+  const elapsedEl= el("elapsed");
+  const countEl  = el("count");
+  const logEl    = el("log");
+
+  let audio = null;
+  let objectUrl = null;
+
+  let running = false;
+  let paused = false;
+
+  let sessionStart = 0;
+  let pausedAt = 0;
+  let pausedTotal = 0;
+
+  let tickTimer = null;
+  let fireTimer = null;
+
+  let playCount = 0;
+
+  function log(msg) {
+    const d = document.createElement("div");
+    d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    logEl.prepend(d);
+  }
+
+  function clampInterval(minS, maxS) {
+    minS = Math.max(1, Number(minS) || 1);
+    maxS = Math.max(1, Number(maxS) || 1);
+    if (maxS < minS) [minS, maxS] = [maxS, minS];
+    return [minS, maxS];
+  }
+
+  function randInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function fmt(ms) {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    const h = String(Math.floor(total / 3600)).padStart(2, "0");
+    const m = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+    const s = String(total % 60).padStart(2, "0");
+    return `${h}:${m}:${s}`;
+  }
+
+  function elapsedMs() {
+    if (!running) return 0;
+    const now = performance.now();
+    const end = paused ? pausedAt : now;
+    return end - sessionStart - pausedTotal;
+  }
+
+  function updateUI() {
+    elapsedEl.textContent = fmt(elapsedMs());
+    countEl.textContent = String(playCount);
+  }
+
+  function setStatus(text) {
+    statusEl.textContent = text;
+  }
+
+  function clearTimers() {
+    if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
+    if (fireTimer) { clearTimeout(fireTimer); fireTimer = null; }
+  }
+
+  async function ensureAudioLoaded() {
+    const file = fileEl.files && fileEl.files[0];
+    const url  = (urlEl.value || "").trim();
+
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl);
+      objectUrl = null;
+    }
+
+    if (file) {
+      objectUrl = URL.createObjectURL(file);
+      audio = new Audio(objectUrl);
+      return;
+    }
+
+    if (url) {
+      audio = new Audio(url);
+      return;
+    }
+
+    audio = null;
+  }
+
+  function beepFallback() {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = 440;
+    g.gain.value = 0.08;
+    o.start();
+    setTimeout(() => { o.stop(); ctx.close(); }, 120);
+  }
+
+  async function playSound() {
+    try {
+      if (!audio) {
+        beepFallback();
+        return;
+      }
+      audio.currentTime = 0;
+      await audio.play();
+    } catch (e) {
+
+      beepFallback();
+      log(`звук через файл/url не сыграл, использую beep (причина: ${e?.message || e})`);
+    }
+  }
+
+  function scheduleNext() {
+    if (!running || paused) return;
+
+    const [minS, maxS] = clampInterval(minSecEl.value, maxSecEl.value);
+    const nextIn = randInt(minS, maxS);
+
+    setStatus(`жарим… следующий сигнал через ${nextIn} сек`);
+    fireTimer = setTimeout(async () => {
+      if (!running || paused) return;
+      playCount += 1;
+      updateUI();
+      log(`сигнал #${playCount}`);
+      await playSound();
+      scheduleNext();
+    }, nextIn * 1000);
+  }
+
+  async function start() {
+    if (running && paused) {
+      // resume
+      paused = false;
+      pausedTotal += performance.now() - pausedAt;
+      setStatus("жарим…");
+      pauseBtn.textContent = "пауза";
+      scheduleNext();
+      return;
+    }
+
+    if (running) return;
+
+    await ensureAudioLoaded();
+
+    running = true;
+    paused = false;
+    sessionStart = performance.now();
+    pausedTotal = 0;
+    playCount = playCount;
+
+    setStatus("жарим…");
+    startBtn.disabled = true;
+    pauseBtn.disabled = false;
+    stopBtn.disabled = false;
+
+    tickTimer = setInterval(updateUI, 200);
+    updateUI();
+
+    scheduleNext();
+    log("старт жарки");
+  }
+
+  function pauseToggle() {
+    if (!running) return;
+
+    if (!paused) {
+      paused = true;
+      pausedAt = performance.now();
+      if (fireTimer) { clearTimeout(fireTimer); fireTimer = null; }
+      setStatus("пауза");
+      pauseBtn.textContent = "продолжить";
+      log("пауза");
+    } else {
+
+      start();
+      log("продолжили");
+    }
+  }
+
+  function stop() {
+    if (!running) return;
+    clearTimers();
+    running = false;
+    paused = false;
+
+    startBtn.disabled = false;
+    pauseBtn.disabled = true;
+    stopBtn.disabled = true;
+    pauseBtn.textContent = "пауза";
+
+    setStatus("остановлено");
+    updateUI();
+    log(`стоп. итого: ${fmt(elapsedMs())}, сигналов: ${playCount}`);
+  }
+
+  async function testSound() {
+    await ensureAudioLoaded();
+    log("тест звука");
+    await playSound();
+  }
+
+  function resetCounters() {
+    playCount = 0;
+
+    if (running) {
+      sessionStart = performance.now();
+      pausedTotal = 0;
+      if (paused) pausedAt = performance.now();
+    }
+    updateUI();
+    log("сброс счётчиков");
+  }
+
+  startBtn.addEventListener("click", start);
+  pauseBtn.addEventListener("click", pauseToggle);
+  stopBtn.addEventListener("click", stop);
+  testBtn.addEventListener("click", testSound);
+  resetBtn.addEventListener("click", resetCounters);
+
+  window.addEventListener("beforeunload", () => {
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+  });
+
+  updateUI();
+})();
+</script>
+</body>
+</html>
