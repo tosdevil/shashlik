@@ -2,119 +2,287 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#e9efe6" />
   <title>жарка шашлыка</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <style>
-    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    body { margin: 0; padding: 18px; background: #111; color: #eee; }
-    .card { max-width: 720px; margin: 0 auto; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 14px; padding: 16px; }
-    h1 { margin: 0 0 12px; font-size: 22px; font-weight: 700; text-transform: lowercase; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    label { display: block; font-size: 13px; opacity: .9; margin-bottom: 6px; text-transform: lowercase; }
-    input[type="number"], input[type="text"] {
-      width: 100%; box-sizing: border-box; padding: 10px 12px;
-      border-radius: 10px; border: 1px solid #333; background: #0f0f0f; color: #eee;
-      outline: none;
+    :root {
+      --bg: #e9efe6;
+      --ink: #1c1c1c;
+      --muted: #6d726a;
+      --faint: rgba(28, 28, 28, .14);
+      --line: 1.5px solid var(--ink);
+      --r: 22px;
+      --sans: "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      --mono: "Space Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     }
-    input[type="file"]{ width:100%; }
-    .btns { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-    button {
-      padding: 10px 14px; border-radius: 10px; border: 1px solid #333;
-      background: #0f0f0f; color: #eee; cursor: pointer; text-transform: lowercase;
+    * { box-sizing: border-box; }
+    html { background: var(--bg); }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans);
+      -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antialiased;
     }
-    button.primary { border-color: #555; background: #1f1f1f; }
-    button:disabled { opacity: .5; cursor: not-allowed; }
-    .stats {
-      margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+    .app {
+      max-width: 520px; margin: 0 auto;
+      padding: calc(14px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom));
     }
-    .stat {
-      background: #0f0f0f; border: 1px solid #2a2a2a; border-radius: 12px; padding: 12px;
+
+    /* header */
+    .top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 6px 0 16px; }
+    h1 { margin: 0; font-size: clamp(30px, 9vw, 42px); font-weight: 500; letter-spacing: -.03em; line-height: 1; text-transform: lowercase; }
+    .badge {
+      font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+      display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; padding-bottom: 6px;
     }
-    .stat .k { font-size: 12px; opacity: .8; text-transform: lowercase; }
-    .stat .v { font-size: 18px; margin-top: 6px; font-variant-numeric: tabular-nums; }
-    .hint { margin-top: 10px; font-size: 12px; opacity: .75; line-height: 1.4; text-transform: lowercase; }
-    .log { margin-top: 12px; padding: 12px; background:#0f0f0f; border:1px solid #2a2a2a; border-radius: 12px; max-height: 180px; overflow:auto; font-size: 12px; }
-    .log div { margin-bottom: 6px; opacity: .9; }
-    .mono { font-variant-numeric: tabular-nums; }
+    .badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; border: var(--line); }
+    .badge.on::before { background: var(--ink); }
+    .badge.paused::before { background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px); }
+
+    .k { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .v { font-size: 26px; font-weight: 500; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+
+    /* hero pill */
+    .hero {
+      border: var(--line); border-radius: 44px; padding: 14px 14px 14px 20px;
+      display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center;
+    }
+    .hero .v { font-size: clamp(26px, 8vw, 32px); }
+    .hero-text { font-family: var(--mono); font-size: 12px; line-height: 1.35; text-transform: lowercase; }
+    .ring { position: relative; width: 64px; height: 64px; flex: none; }
+    .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); display: block; }
+    .ring circle { fill: none; stroke-width: 3; stroke-linecap: round; }
+    .ring .bg { stroke: var(--faint); }
+    .ring .fg { stroke: var(--ink); stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset .2s linear; }
+    .ring span { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+    /* cards */
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .card { border: var(--line); border-radius: var(--r); padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+    .card-head { display: flex; flex-direction: column; gap: 2px; }
+    .card-head b { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .card-head span { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: lowercase; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .stepper { display: flex; align-items: center; gap: 6px; }
+    .stepper button {
+      user-select: none; -webkit-user-select: none;
+      width: 30px; height: 30px; border-radius: 50%; border: var(--line); background: transparent; color: var(--ink);
+      font: 500 18px/1 var(--sans); padding: 0; cursor: pointer; flex: none; display: grid; place-items: center;
+    }
+    .stepper button:active { background: var(--ink); color: var(--bg); }
+    .stepper input {
+      width: 100%; min-width: 0; text-align: center; background: transparent; border: 0; outline: none; color: var(--ink);
+      font: 500 26px/1.1 var(--sans); letter-spacing: -.02em; padding: 0; -moz-appearance: textfield; appearance: textfield;
+    }
+    .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .skewers {
+      height: 44px; margin-top: auto; border-radius: 8px;
+      background: repeating-linear-gradient(90deg, var(--ink) 0 1.5px, transparent 1.5px 8px);
+      -webkit-mask: linear-gradient(90deg, #000 70%, transparent);
+      mask: linear-gradient(90deg, #000 70%, transparent);
+    }
+    .sound-name { font-size: 13px; font-family: var(--mono); overflow-wrap: anywhere; line-height: 1.35; }
+    .link {
+      align-self: flex-start; background: transparent; border: 0; padding: 0; color: var(--ink); cursor: pointer;
+      font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; text-decoration: underline; text-underline-offset: 3px;
+    }
+
+    /* buttons */
+    .btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .btn {
+      user-select: none; -webkit-user-select: none;
+      border: var(--line); background: transparent; color: var(--ink); border-radius: 999px;
+      padding: 15px 14px; font: 500 16px/1 var(--sans); text-transform: lowercase; cursor: pointer; letter-spacing: -.01em;
+    }
+    .btn.primary { grid-column: 1 / -1; background: var(--ink); color: var(--bg); padding: 18px; font-size: 18px; }
+    .btn:disabled { opacity: .3; cursor: not-allowed; }
+    .btn:not(:disabled):active { transform: scale(.98); }
+
+    /* rows */
+    .rows { margin-top: 20px; border-top: var(--line); }
+    .row {
+      display: flex; align-items: center; gap: 12px; padding: 13px 2px; border-bottom: var(--line);
+      font-family: var(--mono); font-size: 13px; text-transform: uppercase; letter-spacing: .02em;
+    }
+    .row .name { flex: 1; min-width: 0; }
+    .row .sub { display: block; font-size: 10px; color: var(--muted); margin-top: 2px; text-transform: lowercase; letter-spacing: 0; }
+    .row input[type="text"] {
+      flex: 1; min-width: 0; background: transparent; border: 0; border-bottom: 1px dashed var(--muted); outline: none;
+      color: var(--ink); font: 13px var(--mono); text-align: right; padding: 4px 0; text-transform: none;
+    }
+    .row input[type="text"]::placeholder { color: var(--muted); }
+    .filebtn { position: relative; overflow: hidden; border: var(--line); border-radius: 999px; padding: 7px 12px; font-size: 11px; cursor: pointer; white-space: nowrap; }
+    .filebtn input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+    .filename { font-size: 11px; color: var(--muted); text-transform: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* toggle */
+    .toggle { position: relative; display: inline-block; flex: none; }
+    .toggle input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+    .toggle .tr {
+      width: 66px; height: 32px; border: var(--line); border-radius: 999px; position: relative;
+      display: flex; align-items: center; justify-content: flex-end; padding: 0 9px;
+      font-family: var(--mono); font-size: 11px; font-weight: 700; transition: background .15s, color .15s;
+    }
+    .toggle .tr::before {
+      content: ""; position: absolute; left: 4px; top: 50%; width: 22px; height: 22px; border-radius: 50%;
+      background: var(--ink); transform: translateY(-50%); transition: left .15s, background .15s;
+    }
+    .toggle .tr::after { content: "OFF"; }
+    .toggle input:checked + .tr { background: var(--ink); color: var(--bg); justify-content: flex-start; }
+    .toggle input:checked + .tr::before { left: 37px; background: var(--bg); }
+    .toggle input:checked + .tr::after { content: "ON"; }
+
+    /* log */
+    .log {
+      margin-top: 14px; padding: 12px 14px; border: var(--line); border-radius: 16px; max-height: 220px; overflow: auto;
+      font-family: var(--mono); font-size: 11px; line-height: 1.5;
+    }
+    .log div { margin-bottom: 4px; }
+    .log div:first-child { font-weight: 700; }
+    .note { margin-top: 14px; font-family: var(--mono); font-size: 10.5px; line-height: 1.5; color: var(--muted); text-transform: lowercase; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>жарка шашлыка</h1>
+  <div class="app">
+    <header class="top">
+      <h1>жарка шашлыка</h1>
+      <div class="badge" id="badge">стоп</div>
+    </header>
 
-    <div class="row">
+    <section class="hero">
       <div>
-        <label>минимум (сек)</label>
-        <input id="minSec" type="number" min="1" value="15" />
+        <div class="k">время жарки</div>
+        <div class="v" id="elapsed">00:00:00</div>
       </div>
-      <div>
-        <label>максимум (сек)</label>
-        <input id="maxSec" type="number" min="1" value="20" />
+      <div class="hero-text" id="status">нажми старт, чтобы начать жарить</div>
+      <div class="ring" aria-hidden="true">
+        <svg viewBox="0 0 36 36">
+          <circle class="bg" cx="18" cy="18" r="16" pathLength="100" />
+          <circle class="fg" id="ringFg" cx="18" cy="18" r="16" pathLength="100" />
+        </svg>
+        <span id="ringText">—</span>
       </div>
-    </div>
+    </section>
 
-    <div style="margin-top:10px">
-      <label>звук (выбери файл mp3/wav/ogg) — надёжнее чем ссылка из-за ограничений браузера</label>
-      <input id="soundFile" type="file" accept="audio/*" />
-    </div>
+    <section class="cards">
+      <div class="card">
+        <div class="card-head"><b>интервал</b><span>секунды между сигналами</span></div>
+        <div class="field">
+          <div class="k">минимум</div>
+          <div class="stepper">
+            <button type="button" data-target="minSec" data-delta="-1" aria-label="минус">−</button>
+            <input id="minSec" type="number" inputmode="numeric" min="1" value="15" />
+            <button type="button" data-target="minSec" data-delta="1" aria-label="плюс">+</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="k">максимум</div>
+          <div class="stepper">
+            <button type="button" data-target="maxSec" data-delta="-1" aria-label="минус">−</button>
+            <input id="maxSec" type="number" inputmode="numeric" min="1" value="20" />
+            <button type="button" data-target="maxSec" data-delta="1" aria-label="плюс">+</button>
+          </div>
+        </div>
+        <div class="skewers"></div>
+      </div>
 
-    <div style="margin-top:10px">
-      <label>или url звука (может не работать из-за cors, лучше файл)</label>
-      <input id="soundUrl" type="text" placeholder="https://..." />
-    </div>
+      <div class="card">
+        <div class="card-head"><b>сигналы</b><span id="soundState">загрузка…</span></div>
+        <div class="field">
+          <div class="k">переворотов</div>
+          <div class="v" id="count">0</div>
+        </div>
+        <div class="field">
+          <div class="k">звук</div>
+          <div class="sound-name" id="soundName">sfx_s_challenge_update.mp3</div>
+        </div>
+        <button class="link" id="testBtn" type="button">тест звука</button>
+        <button class="link" id="resetBtn" type="button">сброс счётчиков</button>
+      </div>
+    </section>
 
     <div class="btns">
-      <button id="startBtn" class="primary">старт</button>
-      <button id="pauseBtn" disabled>пауза</button>
-      <button id="stopBtn" disabled>стоп</button>
-      <button id="testBtn">тест звука</button>
-      <button id="resetBtn">сброс счётчиков</button>
+      <button id="startBtn" class="btn primary" type="button">старт</button>
+      <button id="pauseBtn" class="btn" type="button" disabled>пауза</button>
+      <button id="stopBtn" class="btn" type="button" disabled>стоп</button>
+      <button id="logBtn" class="btn" type="button">лог</button>
     </div>
 
-    <div class="stats">
-      <div class="stat">
-        <div class="k">статус</div>
-        <div class="v" id="status">остановлено</div>
+    <section class="rows">
+      <div class="row">
+        <div class="name">экран не гаснет<span class="sub">wake lock во время жарки</span></div>
+        <label class="toggle"><input id="keepScreen" type="checkbox" checked /><span class="tr"></span></label>
       </div>
-      <div class="stat">
-        <div class="k">время жарки</div>
-        <div class="v mono" id="elapsed">00:00:00</div>
+      <div class="row">
+        <div class="name">фоновый режим<span class="sub">тихая дорожка, чтобы вкладка не спала</span></div>
+        <label class="toggle"><input id="keepAliveOn" type="checkbox" checked /><span class="tr"></span></label>
       </div>
-      <div class="stat">
-        <div class="k">переворотов</div>
-        <div class="v mono" id="count">0</div>
+      <div class="row">
+        <div class="name">свой звук<span class="sub">mp3 / wav / ogg</span></div>
+        <span class="filename" id="fileName"></span>
+        <label class="filebtn">выбрать<input id="soundFile" type="file" accept="audio/*" /></label>
       </div>
-    </div>
+      <div class="row">
+        <div class="name">url звука</div>
+        <input id="soundUrl" type="text" placeholder="https://…" autocomplete="off" />
+      </div>
+    </section>
 
-    <div class="hint">
-      заметка: браузер разрешает звук только после действия пользователя (кнопка старт/тест). если вкладка уснёт — таймер может замедлиться, но всё равно продолжит.
-    </div>
+    <div class="log" id="log" hidden></div>
 
-    <div class="log" id="log"></div>
+    <div class="note">
+      звук включается только после нажатия кнопки — так требует браузер. пока идёт жарка, страница держит себя «играющей»
+      и не даёт экрану погаснуть, чтобы сигналы не пропадали при блокировке или свёрнутом браузере. если сигнал всё же
+      задержался — он сыграет сразу, как только вкладка проснётся. закрытая вкладка — это стоп.
+    </div>
   </div>
 
 <script>
 (() => {
   const el = (id) => document.getElementById(id);
 
+  const DEFAULT_SOUND = "sfx_s_challenge_update.mp3";
+
   const minSecEl = el("minSec");
   const maxSecEl = el("maxSec");
   const fileEl   = el("soundFile");
   const urlEl    = el("soundUrl");
+  const keepScreenEl = el("keepScreen");
+  const keepAliveEl  = el("keepAliveOn");
 
   const startBtn = el("startBtn");
   const pauseBtn = el("pauseBtn");
   const stopBtn  = el("stopBtn");
   const testBtn  = el("testBtn");
   const resetBtn = el("resetBtn");
+  const logBtn   = el("logBtn");
 
   const statusEl = el("status");
+  const badgeEl  = el("badge");
   const elapsedEl= el("elapsed");
   const countEl  = el("count");
   const logEl    = el("log");
+  const ringFg   = el("ringFg");
+  const ringText = el("ringText");
+  const soundStateEl = el("soundState");
+  const soundNameEl  = el("soundName");
+  const fileNameEl   = el("fileName");
 
   let audio = null;
-  let objectUrl = null;
+  let fileObjectUrl = null;
+
+  // звук по умолчанию: качаем в память сразу при открытии страницы
+  let defaultUrl = DEFAULT_SOUND;
+  let defaultLoaded = false;
+
+  // «живая» дорожка: почти беззвучный луп, чтобы браузер не усыплял вкладку в фоне
+  const keepAlive = new Audio();
+  keepAlive.loop = true;
+  keepAlive.src = makeKeepAliveUrl();
+
+  let wakeLock = null;
 
   let running = false;
   let paused = false;
@@ -125,6 +293,9 @@
 
   let tickTimer = null;
   let fireTimer = null;
+  let nextFireAt = 0;      // Date.now() момента следующего сигнала
+  let intervalMs = 0;      // длина текущего ожидания (для кольца)
+  let firing = false;
 
   let playCount = 0;
 
@@ -155,46 +326,125 @@
 
   function elapsedMs() {
     if (!running) return 0;
-    const now = performance.now();
-    const end = paused ? pausedAt : now;
+    const end = paused ? pausedAt : Date.now();
     return end - sessionStart - pausedTotal;
+  }
+
+  function updateRing() {
+    if (running && !paused && nextFireAt && intervalMs > 0) {
+      const remaining = Math.max(0, nextFireAt - Date.now());
+      const pct = 100 * (1 - remaining / intervalMs);
+      ringFg.style.strokeDashoffset = String(100 - pct);
+      ringText.textContent = String(Math.ceil(remaining / 1000));
+    } else {
+      ringFg.style.strokeDashoffset = "100";
+      ringText.textContent = paused ? "| |" : "—";
+    }
   }
 
   function updateUI() {
     elapsedEl.textContent = fmt(elapsedMs());
     countEl.textContent = String(playCount);
+    updateRing();
   }
 
   function setStatus(text) {
     statusEl.textContent = text;
   }
 
+  function setBadge(state) {
+    badgeEl.className = "badge " + (state === "on" ? "on" : state === "paused" ? "paused" : "");
+    badgeEl.textContent = state === "on" ? "жарим" : state === "paused" ? "пауза" : "стоп";
+  }
+
   function clearTimers() {
     if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
     if (fireTimer) { clearTimeout(fireTimer); fireTimer = null; }
+    nextFireAt = 0;
   }
+
+  // ---------- звук ----------
+
+  function makeKeepAliveUrl() {
+    // 2 секунды wav, 8 кгц, моно, 16 бит: тон 40 гц на ~-57 dbfs.
+    // для уха это тишина, но для браузера страница «играет звук» и не попадает под троттлинг.
+    const rate = 8000, secs = 2, n = rate * secs;
+    const buf = new ArrayBuffer(44 + n * 2);
+    const v = new DataView(buf);
+    const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    str(0, "RIFF"); v.setUint32(4, 36 + n * 2, true); str(8, "WAVE");
+    str(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    str(36, "data"); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) {
+      v.setInt16(44 + i * 2, Math.round(Math.sin(2 * Math.PI * 40 * i / rate) * 0.002 * 32767), true);
+    }
+    return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
+  }
+
+  const defaultReady = fetch(DEFAULT_SOUND)
+    .then((r) => { if (!r.ok) throw new Error(`http ${r.status}`); return r.blob(); })
+    .then((b) => {
+      defaultUrl = URL.createObjectURL(b);
+      defaultLoaded = true;
+      log(`звук по умолчанию загружен (${DEFAULT_SOUND}, ${Math.round(b.size / 1024)} кб)`);
+    })
+    .catch((e) => {
+      // например, открыли через file:// — тогда просто отдадим путь плееру напрямую
+      log(`не удалось предзагрузить ${DEFAULT_SOUND} (${e?.message || e}), будет грузиться по факту`);
+    });
+  defaultReady.then(() => ensureAudioLoaded());
 
   async function ensureAudioLoaded() {
     const file = fileEl.files && fileEl.files[0];
     const url  = (urlEl.value || "").trim();
 
-    if (objectUrl) {
-      URL.revokeObjectURL(objectUrl);
-      objectUrl = null;
+    if (fileObjectUrl) {
+      URL.revokeObjectURL(fileObjectUrl);
+      fileObjectUrl = null;
     }
 
+    let src, state, name;
     if (file) {
-      objectUrl = URL.createObjectURL(file);
-      audio = new Audio(objectUrl);
-      return;
+      fileObjectUrl = URL.createObjectURL(file);
+      src = fileObjectUrl;
+      state = "свой файл";
+      name = file.name;
+    } else if (url) {
+      src = url;
+      state = "по ссылке";
+      name = url;
+    } else {
+      await defaultReady;
+      src = defaultUrl;
+      state = defaultLoaded ? "по умолчанию · в памяти" : "по умолчанию";
+      name = DEFAULT_SOUND;
     }
 
-    if (url) {
-      audio = new Audio(url);
-      return;
+    if (!audio || audio.dataset.src !== src) {
+      audio = new Audio(src);
+      audio.preload = "auto";
+      audio.dataset.src = src;
+      audio.load();
     }
+    soundStateEl.textContent = state;
+    soundNameEl.textContent = name;
+    fileNameEl.textContent = file ? file.name : "";
+  }
 
-    audio = null;
+  // вызывать только из клика: «разбудить» элемент, чтобы потом play() из таймера прошёл на ios/android
+  async function unlockAudio() {
+    if (!audio) return;
+    try {
+      audio.muted = true;
+      await audio.play();
+      audio.pause();
+      audio.currentTime = 0;
+    } catch (e) {
+      log(`не удалось разблокировать звук: ${e?.message || e}`);
+    } finally {
+      audio.muted = false;
+    }
   }
 
   function beepFallback() {
@@ -217,11 +467,78 @@
       audio.currentTime = 0;
       await audio.play();
     } catch (e) {
-
       beepFallback();
       log(`звук через файл/url не сыграл, использую beep (причина: ${e?.message || e})`);
     }
   }
+
+  // ---------- фон: keep-alive, wake lock, media session ----------
+
+  async function startKeepAlive() {
+    if (!keepAliveEl.checked) return;
+    try { await keepAlive.play(); }
+    catch (e) { log(`фоновая дорожка не запустилась: ${e?.message || e}`); }
+  }
+
+  function stopKeepAlive() {
+    keepAlive.pause();
+    keepAlive.currentTime = 0;
+  }
+
+  async function acquireWakeLock() {
+    if (wakeLock || !running || paused || !keepScreenEl.checked) return;
+    if (!("wakeLock" in navigator)) return;
+    try {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
+    } catch (e) {
+      log(`не удалось удержать экран: ${e?.message || e}`);
+    }
+  }
+
+  async function releaseWakeLock() {
+    if (!wakeLock) return;
+    try { await wakeLock.release(); } catch {}
+    wakeLock = null;
+  }
+
+  function setMediaSession(state) {
+    if (!("mediaSession" in navigator)) return;
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({ title: "жарка шашлыка", artist: "таймер сигналов" });
+      navigator.mediaSession.playbackState = state;
+    } catch {}
+  }
+
+  if ("mediaSession" in navigator) {
+    const handlers = {
+      play:  () => start(),
+      pause: () => { if (running && !paused) pauseToggle(); },
+      stop:  () => stop(),
+    };
+    for (const [name, fn] of Object.entries(handlers)) {
+      try { navigator.mediaSession.setActionHandler(name, fn); } catch {}
+    }
+  }
+
+  keepScreenEl.addEventListener("change", () => {
+    if (keepScreenEl.checked) acquireWakeLock(); else releaseWakeLock();
+  });
+
+  keepAliveEl.addEventListener("change", () => {
+    if (!running || paused) return;
+    if (keepAliveEl.checked) startKeepAlive(); else keepAlive.pause();
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    // вкладка проснулась: догоняем пропущенный сигнал и возвращаем wake lock (он снимается системой при уходе в фон)
+    fireIfDue();
+    acquireWakeLock();
+    if (running && !paused && keepAlive.paused) startKeepAlive();
+  });
+
+  // ---------- таймер ----------
 
   function scheduleNext() {
     if (!running || paused) return;
@@ -229,24 +546,50 @@
     const [minS, maxS] = clampInterval(minSecEl.value, maxSecEl.value);
     const nextIn = randInt(minS, maxS);
 
-    setStatus(`жарим… следующий сигнал через ${nextIn} сек`);
-    fireTimer = setTimeout(async () => {
-      if (!running || paused) return;
-      playCount += 1;
-      updateUI();
-      log(`сигнал #${playCount}`);
-      await playSound();
-      scheduleNext();
-    }, nextIn * 1000);
+    intervalMs = nextIn * 1000;
+    nextFireAt = Date.now() + intervalMs;
+    setStatus(`следующий сигнал через ${nextIn} сек`);
+    if (fireTimer) clearTimeout(fireTimer);
+    fireTimer = setTimeout(fireIfDue, intervalMs);
+    updateRing();
+  }
+
+  // сигнал стреляет по часам, а не по таймеру: setTimeout в фоне могут заморозить,
+  // поэтому его дублируют тик каждые 200 мс и событие возврата вкладки
+  async function fireIfDue() {
+    if (!running || paused || firing || !nextFireAt) return;
+    const late = Date.now() - nextFireAt;
+    if (late < 0) return;
+
+    firing = true;
+    if (fireTimer) { clearTimeout(fireTimer); fireTimer = null; }
+    nextFireAt = 0;
+
+    playCount += 1;
+    updateUI();
+    log(`сигнал #${playCount}` + (late > 2000 ? ` (с опозданием ${Math.round(late / 1000)} сек — вкладка спала)` : ""));
+    await playSound();
+
+    firing = false;
+    scheduleNext();
+  }
+
+  function tick() {
+    updateUI();
+    fireIfDue();
   }
 
   async function start() {
     if (running && paused) {
       // resume
       paused = false;
-      pausedTotal += performance.now() - pausedAt;
+      pausedTotal += Date.now() - pausedAt;
       setStatus("жарим…");
+      setBadge("on");
       pauseBtn.textContent = "пауза";
+      startKeepAlive();
+      acquireWakeLock();
+      setMediaSession("playing");
       scheduleNext();
       return;
     }
@@ -254,19 +597,24 @@
     if (running) return;
 
     await ensureAudioLoaded();
+    await unlockAudio();
+    await startKeepAlive();
 
     running = true;
     paused = false;
-    sessionStart = performance.now();
+    sessionStart = Date.now();
     pausedTotal = 0;
-    playCount = playCount;
 
     setStatus("жарим…");
+    setBadge("on");
     startBtn.disabled = true;
     pauseBtn.disabled = false;
     stopBtn.disabled = false;
 
-    tickTimer = setInterval(updateUI, 200);
+    acquireWakeLock();
+    setMediaSession("playing");
+
+    tickTimer = setInterval(tick, 200);
     updateUI();
 
     scheduleNext();
@@ -278,13 +626,18 @@
 
     if (!paused) {
       paused = true;
-      pausedAt = performance.now();
+      pausedAt = Date.now();
       if (fireTimer) { clearTimeout(fireTimer); fireTimer = null; }
-      setStatus("пауза");
-      pauseBtn.textContent = "продолжить";
+      nextFireAt = 0;
+      keepAlive.pause();
+      releaseWakeLock();
+      setMediaSession("paused");
+      setStatus("пауза — сигналы не идут");
+      setBadge("paused");
+      pauseBtn.textContent = "дальше";
+      updateUI();
       log("пауза");
     } else {
-
       start();
       log("продолжили");
     }
@@ -292,18 +645,24 @@
 
   function stop() {
     if (!running) return;
+    const total = fmt(elapsedMs());
     clearTimers();
     running = false;
     paused = false;
+
+    stopKeepAlive();
+    releaseWakeLock();
+    setMediaSession("none");
 
     startBtn.disabled = false;
     pauseBtn.disabled = true;
     stopBtn.disabled = true;
     pauseBtn.textContent = "пауза";
 
-    setStatus("остановлено");
+    setStatus("остановлено. нажми старт, чтобы начать заново");
+    setBadge("off");
     updateUI();
-    log(`стоп. итого: ${fmt(elapsedMs())}, сигналов: ${playCount}`);
+    log(`стоп. итого: ${total}, сигналов: ${playCount}`);
   }
 
   async function testSound() {
@@ -316,12 +675,19 @@
     playCount = 0;
 
     if (running) {
-      sessionStart = performance.now();
+      sessionStart = Date.now();
       pausedTotal = 0;
-      if (paused) pausedAt = performance.now();
+      if (paused) pausedAt = Date.now();
     }
     updateUI();
     log("сброс счётчиков");
+  }
+
+  function stepValue(e) {
+    const btn = e.currentTarget;
+    const input = el(btn.dataset.target);
+    const next = Math.max(1, (Number(input.value) || 1) + Number(btn.dataset.delta));
+    input.value = String(next);
   }
 
   startBtn.addEventListener("click", start);
@@ -329,9 +695,13 @@
   stopBtn.addEventListener("click", stop);
   testBtn.addEventListener("click", testSound);
   resetBtn.addEventListener("click", resetCounters);
+  logBtn.addEventListener("click", () => { logEl.hidden = !logEl.hidden; });
+  fileEl.addEventListener("change", ensureAudioLoaded);
+  urlEl.addEventListener("change", ensureAudioLoaded);
+  document.querySelectorAll(".stepper button").forEach((b) => b.addEventListener("click", stepValue));
 
   window.addEventListener("beforeunload", () => {
-    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    if (fileObjectUrl) URL.revokeObjectURL(fileObjectUrl);
   });
 
   updateUI();
