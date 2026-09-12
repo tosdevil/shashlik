@@ -368,6 +368,7 @@
       const secs = Math.ceil(remaining / 1000);
       ringText.textContent = String(secs);
       nextInEl.textContent = `${secs} сек`;
+      setStatus(`следующий переворот через ${secs} сек`);
     } else {
       ringFg.style.strokeDashoffset = "100";
       ringText.textContent = paused ? "| |" : "—";
@@ -571,7 +572,6 @@
 
     intervalMs = nextIn * 1000;
     nextFireAt = Date.now() + intervalMs;
-    setStatus(`следующий сигнал через ${nextIn} сек`);
     if (fireTimer) clearTimeout(fireTimer);
     fireTimer = setTimeout(fireIfDue, intervalMs);
     updateRing();
