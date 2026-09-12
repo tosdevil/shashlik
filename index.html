@@ -126,7 +126,8 @@
     @keyframes up { from { transform: translateY(24px); opacity: 0; } }
     .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .sheet-head b { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-    .sheet-cur { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: lowercase; overflow-wrap: anywhere; margin-bottom: 4px; }
+    .sheet-cur { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: lowercase; margin-bottom: 4px; }
+    .sheet-cur > span { min-width: 0; overflow-wrap: anywhere; }
     .opt {
       position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 3px; text-align: left; width: 100%;
       border: var(--line); border-radius: 18px; padding: 14px 16px; background: transparent; color: var(--ink); cursor: pointer;
@@ -144,23 +145,6 @@
       color: var(--ink); font: 13px var(--mono); padding: 8px 0;
     }
     .urlbox .btn { padding: 10px 18px; font-size: 14px; }
-
-    /* toggle */
-    .toggle { position: relative; display: inline-block; flex: none; }
-    .toggle input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
-    .toggle .tr {
-      width: 66px; height: 32px; border: var(--line); border-radius: 999px; position: relative;
-      display: flex; align-items: center; justify-content: flex-end; padding: 0 9px;
-      font-family: var(--mono); font-size: 11px; font-weight: 700; transition: background .15s, color .15s;
-    }
-    .toggle .tr::before {
-      content: ""; position: absolute; left: 4px; top: 50%; width: 22px; height: 22px; border-radius: 50%;
-      background: var(--ink); transform: translateY(-50%); transition: left .15s, background .15s;
-    }
-    .toggle .tr::after { content: "OFF"; }
-    .toggle input:checked + .tr { background: var(--ink); color: var(--bg); justify-content: flex-start; }
-    .toggle input:checked + .tr::before { left: 37px; background: var(--bg); }
-    .toggle input:checked + .tr::after { content: "ON"; }
 
     /* log */
     .log {
@@ -223,10 +207,9 @@
           <div class="v" id="count">0</div>
         </div>
         <div class="field">
-          <div class="k">интервал</div>
-          <div class="v" id="lastIn">—</div>
+          <div class="k">следующий через</div>
+          <div class="v" id="nextIn">—</div>
         </div>
-        <button class="link" id="testBtn" type="button">тест звука</button>
         <button class="link" id="resetBtn" type="button">сброс счётчиков</button>
       </div>
     </section>
@@ -238,10 +221,6 @@
     </div>
 
     <section class="rows">
-      <div class="row">
-        <div class="name">экран не гаснет<span class="sub">wake lock во время жарки</span></div>
-        <label class="toggle"><input id="keepScreen" type="checkbox" checked /><span class="tr"></span></label>
-      </div>
       <div class="row">
         <div class="name">звук<span class="sub" id="soundName">загрузка…</span></div>
         <button class="pill" id="soundBtn" type="button">изменить</button>
@@ -259,7 +238,10 @@
         <b id="sheetTitle">звук сигнала</b>
         <button class="pill" id="modalClose" type="button">закрыть</button>
       </div>
-      <div class="sheet-cur">сейчас: <span id="modalCur"></span></div>
+      <div class="sheet-cur">
+        <span>сейчас: <span id="modalCur"></span></span>
+        <button class="pill" id="testBtn" type="button">тест звука</button>
+      </div>
 
       <label class="opt">
         <span class="opt-t">загрузить файл</span>
@@ -293,7 +275,6 @@
   const maxSecEl = el("maxSec");
   const fileEl   = el("soundFile");
   const urlEl    = el("soundUrl");
-  const keepScreenEl = el("keepScreen");
 
   const startBtn = el("startBtn");
   const pauseBtn = el("pauseBtn");
@@ -309,7 +290,7 @@
   const ringFg   = el("ringFg");
   const ringText = el("ringText");
   const soundNameEl = el("soundName");
-  const lastInEl    = el("lastIn");
+  const nextInEl    = el("nextIn");
 
   const modal      = el("modal");
   const modalClose = el("modalClose");
@@ -384,10 +365,13 @@
       const remaining = Math.max(0, nextFireAt - Date.now());
       const pct = 100 * (1 - remaining / intervalMs);
       ringFg.style.strokeDashoffset = String(100 - pct);
-      ringText.textContent = String(Math.ceil(remaining / 1000));
+      const secs = Math.ceil(remaining / 1000);
+      ringText.textContent = String(secs);
+      nextInEl.textContent = `${secs} сек`;
     } else {
       ringFg.style.strokeDashoffset = "100";
       ringText.textContent = paused ? "| |" : "—";
+      nextInEl.textContent = paused ? "пауза" : "—";
     }
   }
 
@@ -476,7 +460,7 @@
       audio.dataset.src = src;
       audio.load();
     }
-    soundNameEl.textContent = `${state} · ${name}`;
+    soundNameEl.textContent = (file || url) ? `${state} · ${name}` : "сейчас выбран стандартный звук";
     soundNameEl.classList.toggle("path", !!(file || url));
     modalCur.textContent = name;
   }
@@ -534,7 +518,7 @@
   }
 
   async function acquireWakeLock() {
-    if (wakeLock || !running || paused || !keepScreenEl.checked) return;
+    if (wakeLock || !running || paused) return;
     if (!("wakeLock" in navigator)) return;
     try {
       wakeLock = await navigator.wakeLock.request("screen");
@@ -569,10 +553,6 @@
     }
   }
 
-  keepScreenEl.addEventListener("change", () => {
-    if (keepScreenEl.checked) acquireWakeLock(); else releaseWakeLock();
-  });
-
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible") return;
     // вкладка проснулась: догоняем пропущенный сигнал и возвращаем wake lock (он снимается системой при уходе в фон)
@@ -592,7 +572,6 @@
     intervalMs = nextIn * 1000;
     nextFireAt = Date.now() + intervalMs;
     setStatus(`следующий сигнал через ${nextIn} сек`);
-    lastInEl.textContent = `${nextIn} сек`;
     if (fireTimer) clearTimeout(fireTimer);
     fireTimer = setTimeout(fireIfDue, intervalMs);
     updateRing();
@@ -676,7 +655,7 @@
       keepAlive.pause();
       releaseWakeLock();
       setMediaSession("paused");
-      setStatus("пауза — сигналы не идут");
+      setStatus("пауза");
       setBadge("paused");
       pauseBtn.textContent = "дальше";
       updateUI();
