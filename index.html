@@ -83,14 +83,13 @@
       -webkit-mask: linear-gradient(90deg, #000 70%, transparent);
       mask: linear-gradient(90deg, #000 70%, transparent);
     }
-    .sound-name { font-size: 13px; font-family: var(--mono); overflow-wrap: anywhere; line-height: 1.35; }
     .link {
       align-self: flex-start; background: transparent; border: 0; padding: 0; color: var(--ink); cursor: pointer;
       font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; text-decoration: underline; text-underline-offset: 3px;
     }
 
     /* buttons */
-    .btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
     .btn {
       user-select: none; -webkit-user-select: none;
       border: var(--line); background: transparent; color: var(--ink); border-radius: 999px;
@@ -108,14 +107,43 @@
     }
     .row .name { flex: 1; min-width: 0; }
     .row .sub { display: block; font-size: 10px; color: var(--muted); margin-top: 2px; text-transform: lowercase; letter-spacing: 0; }
-    .row input[type="text"] {
-      flex: 1; min-width: 0; background: transparent; border: 0; border-bottom: 1px dashed var(--muted); outline: none;
-      color: var(--ink); font: 13px var(--mono); text-align: right; padding: 4px 0; text-transform: none;
+    .row .sub.path { overflow-wrap: anywhere; }
+    .pill {
+      user-select: none; -webkit-user-select: none; flex: none;
+      border: var(--line); background: transparent; color: var(--ink); border-radius: 999px; padding: 8px 13px;
+      font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; cursor: pointer;
     }
-    .row input[type="text"]::placeholder { color: var(--muted); }
-    .filebtn { position: relative; overflow: hidden; border: var(--line); border-radius: 999px; padding: 7px 12px; font-size: 11px; cursor: pointer; white-space: nowrap; }
-    .filebtn input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
-    .filename { font-size: 11px; color: var(--muted); text-transform: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pill:active { background: var(--ink); color: var(--bg); }
+
+    /* modal sheet */
+    .modal { position: fixed; inset: 0; z-index: 10; background: rgba(28, 28, 28, .45); display: flex; align-items: flex-end; justify-content: center; }
+    .modal[hidden] { display: none; }
+    .sheet {
+      width: 100%; max-width: 520px; background: var(--bg); border: var(--line); border-bottom: 0;
+      border-radius: 28px 28px 0 0; padding: 18px 16px calc(24px + env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; gap: 10px; animation: up .2s ease-out;
+    }
+    @keyframes up { from { transform: translateY(24px); opacity: 0; } }
+    .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .sheet-head b { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .sheet-cur { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: lowercase; overflow-wrap: anywhere; margin-bottom: 4px; }
+    .opt {
+      position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 3px; text-align: left; width: 100%;
+      border: var(--line); border-radius: 18px; padding: 14px 16px; background: transparent; color: var(--ink); cursor: pointer;
+      font-family: var(--mono); text-transform: uppercase; letter-spacing: .02em;
+    }
+    .opt:active { background: var(--ink); color: var(--bg); }
+    .opt .opt-t { font-size: 13px; }
+    .opt .sub { font-size: 10px; color: var(--muted); text-transform: lowercase; letter-spacing: 0; }
+    .opt:active .sub { color: inherit; }
+    .opt input[type="file"] { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+    .urlbox { display: flex; gap: 8px; align-items: center; padding: 0 4px; }
+    .urlbox[hidden] { display: none; }
+    .urlbox input {
+      flex: 1; min-width: 0; background: transparent; border: 0; border-bottom: 1px dashed var(--muted); outline: none;
+      color: var(--ink); font: 13px var(--mono); padding: 8px 0;
+    }
+    .urlbox .btn { padding: 10px 18px; font-size: 14px; }
 
     /* toggle */
     .toggle { position: relative; display: inline-block; flex: none; }
@@ -141,7 +169,7 @@
     }
     .log div { margin-bottom: 4px; }
     .log div:first-child { font-weight: 700; }
-    .note { margin-top: 14px; font-family: var(--mono); font-size: 10.5px; line-height: 1.5; color: var(--muted); text-transform: lowercase; }
+    .sign { margin-top: 22px; font-family: var(--mono); font-size: 11px; line-height: 1.5; color: var(--muted); text-align: center; }
   </style>
 </head>
 <body>
@@ -189,14 +217,14 @@
       </div>
 
       <div class="card">
-        <div class="card-head"><b>сигналы</b><span id="soundState">загрузка…</span></div>
+        <div class="card-head"><b>сигналы</b><span>переворачивай по звуку</span></div>
         <div class="field">
           <div class="k">переворотов</div>
           <div class="v" id="count">0</div>
         </div>
         <div class="field">
-          <div class="k">звук</div>
-          <div class="sound-name" id="soundName">sfx_s_challenge_update.mp3</div>
+          <div class="k">интервал</div>
+          <div class="v" id="lastIn">—</div>
         </div>
         <button class="link" id="testBtn" type="button">тест звука</button>
         <button class="link" id="resetBtn" type="button">сброс счётчиков</button>
@@ -207,7 +235,6 @@
       <button id="startBtn" class="btn primary" type="button">старт</button>
       <button id="pauseBtn" class="btn" type="button" disabled>пауза</button>
       <button id="stopBtn" class="btn" type="button" disabled>стоп</button>
-      <button id="logBtn" class="btn" type="button">лог</button>
     </div>
 
     <section class="rows">
@@ -216,26 +243,43 @@
         <label class="toggle"><input id="keepScreen" type="checkbox" checked /><span class="tr"></span></label>
       </div>
       <div class="row">
-        <div class="name">фоновый режим<span class="sub">тихая дорожка, чтобы вкладка не спала</span></div>
-        <label class="toggle"><input id="keepAliveOn" type="checkbox" checked /><span class="tr"></span></label>
-      </div>
-      <div class="row">
-        <div class="name">свой звук<span class="sub">mp3 / wav / ogg</span></div>
-        <span class="filename" id="fileName"></span>
-        <label class="filebtn">выбрать<input id="soundFile" type="file" accept="audio/*" /></label>
-      </div>
-      <div class="row">
-        <div class="name">url звука</div>
-        <input id="soundUrl" type="text" placeholder="https://…" autocomplete="off" />
+        <div class="name">звук<span class="sub" id="soundName">загрузка…</span></div>
+        <button class="pill" id="soundBtn" type="button">изменить</button>
       </div>
     </section>
 
     <div class="log" id="log" hidden></div>
 
-    <div class="note">
-      звук включается только после нажатия кнопки — так требует браузер. пока идёт жарка, страница держит себя «играющей»
-      и не даёт экрану погаснуть, чтобы сигналы не пропадали при блокировке или свёрнутом браузере. если сигнал всё же
-      задержался — он сыграет сразу, как только вкладка проснётся. закрытая вкладка — это стоп.
+    <div class="sign">je m’appelle dan et je travaille comme simple agent d’entretien. &#x2665;</div>
+  </div>
+
+  <div class="modal" id="modal" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <div class="sheet-head">
+        <b id="sheetTitle">звук сигнала</b>
+        <button class="pill" id="modalClose" type="button">закрыть</button>
+      </div>
+      <div class="sheet-cur">сейчас: <span id="modalCur"></span></div>
+
+      <label class="opt">
+        <span class="opt-t">загрузить файл</span>
+        <span class="sub">mp3 / wav / ogg с телефона</span>
+        <input id="soundFile" type="file" accept="audio/*" />
+      </label>
+
+      <button class="opt" id="urlOpt" type="button">
+        <span class="opt-t">вставить ссылку</span>
+        <span class="sub">может не сыграть из-за cors</span>
+      </button>
+      <div class="urlbox" id="urlBox" hidden>
+        <input id="soundUrl" type="text" placeholder="https://…" autocomplete="off" inputmode="url" />
+        <button class="btn" id="urlApply" type="button">ок</button>
+      </div>
+
+      <button class="opt" id="defaultOpt" type="button">
+        <span class="opt-t">звук по умолчанию</span>
+        <span class="sub">sfx_s_challenge_update.mp3</span>
+      </button>
     </div>
   </div>
 
@@ -250,14 +294,12 @@
   const fileEl   = el("soundFile");
   const urlEl    = el("soundUrl");
   const keepScreenEl = el("keepScreen");
-  const keepAliveEl  = el("keepAliveOn");
 
   const startBtn = el("startBtn");
   const pauseBtn = el("pauseBtn");
   const stopBtn  = el("stopBtn");
   const testBtn  = el("testBtn");
   const resetBtn = el("resetBtn");
-  const logBtn   = el("logBtn");
 
   const statusEl = el("status");
   const badgeEl  = el("badge");
@@ -266,9 +308,16 @@
   const logEl    = el("log");
   const ringFg   = el("ringFg");
   const ringText = el("ringText");
-  const soundStateEl = el("soundState");
-  const soundNameEl  = el("soundName");
-  const fileNameEl   = el("fileName");
+  const soundNameEl = el("soundName");
+  const lastInEl    = el("lastIn");
+
+  const modal      = el("modal");
+  const modalClose = el("modalClose");
+  const modalCur   = el("modalCur");
+  const urlOpt     = el("urlOpt");
+  const urlBox     = el("urlBox");
+  const urlApply   = el("urlApply");
+  const defaultOpt = el("defaultOpt");
 
   let audio = null;
   let fileObjectUrl = null;
@@ -427,9 +476,9 @@
       audio.dataset.src = src;
       audio.load();
     }
-    soundStateEl.textContent = state;
-    soundNameEl.textContent = name;
-    fileNameEl.textContent = file ? file.name : "";
+    soundNameEl.textContent = `${state} · ${name}`;
+    soundNameEl.classList.toggle("path", !!(file || url));
+    modalCur.textContent = name;
   }
 
   // вызывать только из клика: «разбудить» элемент, чтобы потом play() из таймера прошёл на ios/android
@@ -475,7 +524,6 @@
   // ---------- фон: keep-alive, wake lock, media session ----------
 
   async function startKeepAlive() {
-    if (!keepAliveEl.checked) return;
     try { await keepAlive.play(); }
     catch (e) { log(`фоновая дорожка не запустилась: ${e?.message || e}`); }
   }
@@ -525,11 +573,6 @@
     if (keepScreenEl.checked) acquireWakeLock(); else releaseWakeLock();
   });
 
-  keepAliveEl.addEventListener("change", () => {
-    if (!running || paused) return;
-    if (keepAliveEl.checked) startKeepAlive(); else keepAlive.pause();
-  });
-
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible") return;
     // вкладка проснулась: догоняем пропущенный сигнал и возвращаем wake lock (он снимается системой при уходе в фон)
@@ -549,6 +592,7 @@
     intervalMs = nextIn * 1000;
     nextFireAt = Date.now() + intervalMs;
     setStatus(`следующий сигнал через ${nextIn} сек`);
+    lastInEl.textContent = `${nextIn} сек`;
     if (fireTimer) clearTimeout(fireTimer);
     fireTimer = setTimeout(fireIfDue, intervalMs);
     updateRing();
@@ -695,9 +739,49 @@
   stopBtn.addEventListener("click", stop);
   testBtn.addEventListener("click", testSound);
   resetBtn.addEventListener("click", resetCounters);
-  logBtn.addEventListener("click", () => { logEl.hidden = !logEl.hidden; });
-  fileEl.addEventListener("change", ensureAudioLoaded);
-  urlEl.addEventListener("change", ensureAudioLoaded);
+
+  // ---------- модалка выбора звука ----------
+
+  function openModal() {
+    urlBox.hidden = !(urlEl.value || "").trim();
+    modal.hidden = false;
+  }
+  function closeModal() {
+    modal.hidden = true;
+  }
+
+  el("soundBtn").addEventListener("click", openModal);
+  modalClose.addEventListener("click", closeModal);
+  modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modal.hidden) closeModal(); });
+
+  fileEl.addEventListener("change", async () => {
+    if (!fileEl.files || !fileEl.files[0]) return;
+    urlEl.value = "";
+    await ensureAudioLoaded();
+    closeModal();
+  });
+
+  urlOpt.addEventListener("click", () => {
+    urlBox.hidden = false;
+    urlEl.focus();
+  });
+
+  async function applyUrl() {
+    if (!(urlEl.value || "").trim()) { urlEl.focus(); return; }
+    fileEl.value = "";
+    await ensureAudioLoaded();
+    closeModal();
+  }
+  urlApply.addEventListener("click", applyUrl);
+  urlEl.addEventListener("keydown", (e) => { if (e.key === "Enter") applyUrl(); });
+
+  defaultOpt.addEventListener("click", async () => {
+    fileEl.value = "";
+    urlEl.value = "";
+    await ensureAudioLoaded();
+    closeModal();
+  });
   document.querySelectorAll(".stepper button").forEach((b) => b.addEventListener("click", stepValue));
 
   window.addEventListener("beforeunload", () => {
